@@ -5,9 +5,13 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\DeliveryResource\Pages;
 use App\Filament\Resources\DeliveryResource\RelationManagers;
 use App\Filament\Resources\DeliveryResource\RelationManagers\DeliveryEventsRelationManager;
+use Spatie\Permission\Traits\HasRoles;
 use App\Models\Delivery;
+use Filament\Facades\Filament;
 use Filament\Forms;
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Group;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -21,6 +25,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class DeliveryResource extends Resource
 {
+    protected static ?string $title = 'Delivery';
     protected static ?string $model = Delivery::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
@@ -34,7 +39,7 @@ class DeliveryResource extends Resource
                     ->schema([
                         TextInput::make('delivery_code')
                             ->default(function () {
-                                $last = \App\Models\Delivery::latest('id')->first();
+                                $last = Delivery::latest('id')->first();
                                 $lastNumber = 1;
 
                                 if ($last && preg_match('/TJ-(\d+)/', $last->delivery_code, $matches)) {
@@ -43,42 +48,51 @@ class DeliveryResource extends Resource
 
                                 return 'TJ-' . str_pad($lastNumber, 13, '0', STR_PAD_LEFT);
                             })
-                            ->disabled() // jika ingin mencegah user mengubahnya
+                            ->disabled(fn($livewire) => filled($livewire->record))
                             ->dehydrated(),
                         TextInput::make('recipient_name')
                             ->required()
                             ->columnSpanFull()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->disabled(fn($livewire) => filled($livewire->record)),
                         TextInput::make('recipient_address')
                             ->required()
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->disabled(fn($livewire) => filled($livewire->record)),
                         // Toggle::make('is_pickup')
                         //     ->reactive(),
                         TextInput::make('delivery_items')
                             ->required()
-                            ->columnSpanFull(),
-                        TextInput::make('users_id')
-                            ->label('Driver')
-                            ->readOnly()
-                            ->formatStateUsing(function ($record) {
-                                if (!$record) {
-                                    return null;
-                                }
-                                if ($record->deliveryEvents->isEmpty()) {
-                                    return null;  // Tampilkan nilai default jika tidak ada event
-                                }
-                                // Ambil event terbaru berdasarkan created_at
-                                $latestUserOnEvent = $record->deliveryEvents->sortByDesc('created_at')->first();
-
-                                // Kembalikan status terbaru jika ada, jika tidak tampilkan '-'
-                                return optional($latestUserOnEvent?->users)->name ?? null;
-                            }),
-
-                        // Select::make('users_id')
+                            ->columnSpanFull()
+                            ->disabled(fn($livewire) => filled($livewire->record)),
+                        // TextInput::make('users_id')
                         //     ->label('Driver')
-                        //     ->relationship('users', 'name')
-                        //     ->preload()
-                        //     ->searchable(),
+                        //     // ->readOnly()
+                        //     ->formatStateUsing(function ($record) {
+                        //         if (!$record) {
+                        //             return null;
+                        //         }
+                        //         if ($record->deliveryEvents->isEmpty()) {
+                        //             return null;  // Tampilkan nilai default jika tidak ada event
+                        //         }
+                        //         // Ambil event terbaru berdasarkan created_at
+                        //         $latestUserOnEvent = $record->deliveryEvents->sortByDesc('created_at')->first();
+
+                        //         // Kembalikan status terbaru jika ada, jika tidak tampilkan '-'
+                        //         return optional($latestUserOnEvent?->users)->name ?? null;
+                        //     }),
+                        Placeholder::make('note')
+                            ->label('Notes')
+                            ->content('📌 Notes: After this form submitted , deliveries form cannot be edited')
+                            ->visible(
+                                fn(Component $component): bool =>
+                                $component->getLivewire() instanceof \Filament\Resources\Pages\CreateRecord
+                            ),
+                        Select::make('users_id')
+                            ->label('Driver')
+                            ->relationship('users', 'name')
+                            ->preload()
+                            ->searchable(),
 
                         // ->hidden(fn($get) => !$get('is_pickup')),
                         // Select::make('checkpoints_id')
@@ -207,14 +221,28 @@ class DeliveryResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ])
-            ->with([
+        $query = parent::getEloquentQuery();
+        // ->withoutGlobalScopes([
+        //     SoftDeletingScope::class,
+        // ])
+        // ->with([
+        //     'deliveryEvents.deliveryStatus', // <-- relasi berantai
+        //     'deliveryEvents.checkpoints',     // <-- jika ada checkpoint juga
+        // ]);
+        // if(!Filament::auth()->user()->hasAnyRole('super_admin'))
+        if(!Filament::auth()->user()->hasRole('super_admin'))
+        {
+            $query->withoutGlobalScopes([SoftDeletingScope::class,])->with([
+            'deliveryEvents.deliveryStatus', // <-- relasi berantai
+            'deliveryEvents.checkpoints',     // <-- jika ada checkpoint juga
+        ])->where('users_id', Filament::auth()->id());
+        } else{
+            $query ->withoutGlobalScopes([SoftDeletingScope::class,])->with([
                 'deliveryEvents.deliveryStatus', // <-- relasi berantai
                 'deliveryEvents.checkpoints',     // <-- jika ada checkpoint juga
             ]);
+        }
+        return $query;
     }
 
     //buat hilangin di sidebar 

@@ -30,6 +30,8 @@ class DeliveryResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?string $navigationGroup = 'Deliveries';
+
     public static function form(Form $form): Form
     {
         return $form

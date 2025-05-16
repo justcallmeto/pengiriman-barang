@@ -4,6 +4,7 @@ namespace App\Filament\Resources\DeliveryResource\RelationManagers;
 
 use Filament\Facades\Filament;
 use Filament\Forms;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Section;
+use Filament\Tables\Columns\ImageColumn;
 use Illuminate\Database\Eloquent\Model; // tambahkan ini jika belum
 use Illuminate\Support\Facades\Log;
 
@@ -36,28 +38,42 @@ class DeliveryEventsRelationManager extends RelationManager
                 Section::make('Delivery Events')
                     ->schema([
 
+
                         Select::make('delivery_statuses_id')
                             ->relationship('deliveryStatus', 'delivery_status')
                             ->preload()
                             ->default(fn($livewire) => $livewire->getOwnerRecord()?->deliveryEvents->sortByDesc('created_at')->first()?->delivery_statuses_id)
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->reactive(),
                         Select::make('checkpoint_id')
                             ->label('Checkpoints')
                             ->relationship('checkpoints', 'checkpoint_name')
                             ->default(fn($livewire) => $livewire->getOwnerRecord()?->deliveryEvents->sortByDesc('created_at')->first()?->checkpoint_id)
-                            ->columnSpanFull(),
+                            ->hidden(fn($get) => \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status !== 'Telah Tiba')
+                            ->columnSpanFull()
+                            ->reactive(),
+                        FileUpload::make('photos')
+                        ->label('Photos')
+                        ->image()
+                        ->directory('delivery-photos')
+                        ->hidden(fn($get) => \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status !== 'Telah Tiba')
+                        // ->required()
+                        ->columnSpanFull(),
                         // Select::make('users_id')
                         //     ->label('Driver')
                         //     ->relationship('users', 'name')
                         //     ->preload()
                         //     ->formatStateUsing(fn($state, $record) => $record?->users_id),
-                        Select::make('users_id')
-                            ->label('Driver')
-                            ->relationship('users', 'name')
-                            ->preload()
-                            ->default(fn($livewire) => $livewire->getOwnerRecord()?->deliveryEvents->sortByDesc('created_at')->first()?->users_id)
-                            ->disabled()
-                            ->columnSpanFull(),
+                        // Select::make('users_id')
+                        //     ->label('Driver')
+                        //     ->relationship('users', 'name')
+                        //     ->preload()
+                        //     ->default(fn($livewire) => $livewire->getOwnerRecord()?->users_id)
+                        //     ->disabled()
+                        //     ->dehydrated(true)
+                        //     ->columnSpanFull(),
+                        Forms\Components\Hidden::make('users_id')
+                            ->default(fn($livewire) => $livewire->getOwnerRecord()?->users_id),
                         Placeholder::make('note')
                             ->content('📌 Setelah pengiriman dibuat, data tidak dapat diubah.'),
                         // Select::make('checkpoints_id') // pastikan field-nya sesuai kolom foreign key
@@ -81,10 +97,12 @@ class DeliveryEventsRelationManager extends RelationManager
             ->recordTitleAttribute('id')
             ->columns([
                 TextColumn::make('id'),
+                TextColumn::make('users_id')->label('User ID'),
                 TextColumn::make('checkpoints.checkpoint_name')->label('Checkpoint'),
                 TextColumn::make('users.name')->label('Handled By'),
                 TextColumn::make('deliveryStatus.delivery_status'),
                 TextColumn::make('created_at')->label('Event Time')->dateTime(),
+                ImageColumn::make('image'),
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make()
@@ -109,34 +127,4 @@ class DeliveryEventsRelationManager extends RelationManager
                 SoftDeletingScope::class,
             ]));
     }
-    // public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
-    // {
-    //     return Filament::auth()->user()->hasRole('super_admin') || $ownerRecord->users_id === Filament::auth()->id();
-    //     // return true;
-    // }
-
-    // public static function canUpdate(Model $ownerRecord): bool
-    // {
-    //         Log::info('Checking if user can edit', [
-    //     'user_id' => auth()->id(),
-    //     'record_owner' => $record->users_id,
-    // ]);
-    //     return auth()->user()->hasRole('super_admin') || $ownerRecord->users_id === auth()->id();
-    // }
-
-    // public function canCreateRecord(Model $owerRecord)
-
-    // {
-    //     return true;
-    // }
-
-    // public function canEdit(Model $record)
-    // {
-    //     return true; // Allow all roles to edit
-    // }
-    // public static function canView(Model $record): bool
-    // {
-    //     return auth()->user()->hasRole('super_admin') ||
-    //         $record->users_id === auth()->id();
-    // }
 }

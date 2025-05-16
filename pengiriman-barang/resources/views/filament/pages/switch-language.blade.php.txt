@@ -1,0 +1,5 @@
+<x-filament-panels::page>
+    <div>
+        Redirecting...
+    </div>
+</x-filament-panels::page>

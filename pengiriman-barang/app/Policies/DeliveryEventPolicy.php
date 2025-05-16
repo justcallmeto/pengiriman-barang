@@ -15,36 +15,42 @@ class DeliveryEventPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['admin', 'manager', 'user']);
+        return $user->hasRole(['super_admin', 'manager', 'user']);
     }
 
     public function view(User $user, DeliveryEvent $deliveryEvent): bool
     {
-        return $user->hasRole(['admin', 'manager', 'user']);
+        if($user->hasRole('super_admin'))
+        {
+            return true;
+        } else{
+            return $user->id === $deliveryEvent->users_id;
+        }
+        // return $user->hasRole(['super_admin', 'manager', 'user']);
     }
 
     public function create(User $user): bool
     {
-        return $user->hasRole(['admin', 'manager', 'user']);
+        return $user->hasRole(['super_admin', 'manager', 'user']);
     }
 
     public function update(User $user, DeliveryEvent $deliveryEvent): bool
     {
-        return $user->hasRole(['admin', 'manager', 'user']);
+        return $user->hasRole(['super_admin', 'manager', 'user']);
     }
 
     public function delete(User $user, DeliveryEvent $deliveryEvent): bool
     {
-        return $user->hasRole(['admin', 'user']);
+        return $user->hasRole(['super_admin', 'user']);
     }
 
     public function restore(User $user, DeliveryEvent $deliveryEvent): bool
     {
-        return $user->hasRole(['admin', 'user']);
+        return $user->hasRole(['super_admin', 'user']);
     }
 
     public function forceDelete(User $user, DeliveryEvent $deliveryEvent): bool
     {
-        return $user->hasRole(['admin', 'user']);
+        return $user->hasRole(['super_admin', 'user']);
     }
 }

@@ -1,0 +1,17 @@
+@php
+    $currentLocale = app()->getLocale();
+@endphp
+
+<div class="flex items-center gap-2 px-2">
+    <a href="{{ route('filament.admin.locale.switch', 'en') }}"
+       class="text-sm font-medium {{ $currentLocale === 'en' ? 'text-primary-600 underline' : 'text-gray-500' }}">
+        EN
+    </a>
+
+    <span>|</span>
+
+    <a href="{{ route('filament.admin.locale.switch', 'id') }}"
+       class="text-sm font-medium {{ $currentLocale === 'id' ? 'text-primary-600 underline' : 'text-gray-500' }}">
+        ID
+    </a>
+</div>

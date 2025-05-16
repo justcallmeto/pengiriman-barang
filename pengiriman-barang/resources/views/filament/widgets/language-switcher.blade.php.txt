@@ -1,0 +1,17 @@
+<x-filament-widgets::widget>
+<x-filament::section>
+    <div class="flex items-center">
+        <span class="mr-3 text-sm font-medium">{{ __('Language') }}:</span>
+        <div class="flex space-x-2">
+            @foreach($availableLocales as $locale => $name)
+                <a 
+                    href="{{ url('admin/language/' . $locale) }}" 
+                    class="{{ $locale === $currentLocale ? 'bg-primary-500' : 'bg-gray-500' }} flex items-center justify-center w-8 h-8 text-xs font-bold rounded-full text-white"
+                    title="{{ $name }}"
+                >
+                    {{ strtoupper(substr($locale, 0, 2)) }}
+                </a>
+            @endforeach
+        </div>
+    </div>
+</x-filament::section>

@@ -21,18 +21,18 @@ class DeliveryEventResource extends Resource
     
     public static function canCreate(): bool
     {
-        return auth()->user()->hasRole(['admin', 'manager', 'user']);
+        return auth()->user()->hasRole(['admin', 'super_admin', 'user']);
     }
     
     // Perbaikan disini: Menggunakan Model sebagai tipe parameter dan menambahkan return type bool
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()->hasRole(['admin', 'manager', 'user']);
+        return auth()->user()->hasRole(['admin', 'super_admin', 'user']);
     }
     
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()->hasRole(['admin', 'user']);
+        return auth()->user()->hasRole(['admin', 'super_admin','user']);
     }
 
     public static function form(Form $form): Form

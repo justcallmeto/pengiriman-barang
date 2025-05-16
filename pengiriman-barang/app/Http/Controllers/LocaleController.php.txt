@@ -1,0 +1,30 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Session;
+
+class LocaleController extends Controller
+{
+    /**
+     * Switch the application locale.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string  $locale
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function switch($locale)
+    {
+        $availableLocales = ['en', 'id'];
+
+        if (!in_array($locale, $availableLocales)) {
+            abort(400, 'Invalid locale.');
+        }
+
+        session(['locale' => $locale]);
+
+        return redirect()->route('filament.admin.pages.dashboard');
+    }
+}

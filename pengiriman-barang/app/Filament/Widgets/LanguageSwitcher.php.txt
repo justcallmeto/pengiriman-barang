@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Filament\Widgets;
+
+use Filament\Widgets\Widget;
+use Illuminate\Support\Facades\App;
+
+class LanguageSwitcher extends Widget
+{
+    // Menggunakan view untuk tampilan widget
+    protected static string $view = 'filament.widgets.language-switcher';
+    
+    // Urutan widget (-2 = dekat dengan bagian atas)
+    protected static ?int $sort = -2;
+    
+    // Widget ini akan selalu ditampilkan
+    public static function canView(): bool
+    {
+        return true;
+    }
+    
+    // Data yang akan dikirimkan ke view
+    protected function getViewData(): array
+    {
+        return [
+            'currentLocale' => App::getLocale(),
+            'availableLocales' => [
+                'en' => 'English',
+                'id' => 'Indonesia',
+            ],
+        ];
+    }
+}

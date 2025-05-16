@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class DeliveryEvent extends Model
 {
     use HasFactory, SoftDeletes;
-    protected $fillable = ['delivery_id', 'checkpoint_id', 'delivery_statuses_id', 'user_id', 'note', 'photos'];
+    protected $fillable = ['delivery_id', 'checkpoint_id', 'delivery_statuses_id', 'users_id', 'note', 'photos'];
     public function delivery()
     {
         return $this->belongsTo(Delivery::class, 'delivery_id');

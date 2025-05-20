@@ -131,4 +131,9 @@ class DeliveryEventResource extends Resource
                 SoftDeletingScope::class,
             ]);
     }
+    //  buat hilangin di sidebar 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
 }

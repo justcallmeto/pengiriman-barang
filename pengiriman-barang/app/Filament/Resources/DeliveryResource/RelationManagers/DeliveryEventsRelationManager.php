@@ -49,16 +49,50 @@ class DeliveryEventsRelationManager extends RelationManager
                             ->label('Checkpoints')
                             ->relationship('checkpoints', 'checkpoint_name')
                             ->default(fn($livewire) => $livewire->getOwnerRecord()?->deliveryEvents->sortByDesc('created_at')->first()?->checkpoint_id)
-                            ->hidden(fn($get) => \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status !== 'Telah Tiba')
+                            // ->placeholder('Menunggu')
+                            ->hidden(function ($get) {
+                                $status = \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status;
+                                return in_array($status, ['Telah Tiba', 'Sedang Dipickup', 'Menunggu Persetujuan']);
+                            })
+                            ->afterStateHydrated(function ($set, $get) {
+                                $status = \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status;
+
+                                if ($status === 'Telah Tiba' || $status == 'Sedang Dipickup') {
+                                    $set('checkpoint_id', null); // atau '' jika ingin string kosong
+                                }
+                            })
                             ->columnSpanFull()
                             ->reactive(),
+                        Select::make('users_id')
+                            ->label('Driver')
+                            ->relationship('users', 'name')
+                            ->preload()
+                            ->formatStateUsing(fn($state, $record) => $record?->users_id)
+                            ->hidden(fn($get) => !in_array(
+                                \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status,
+                                ['Sedang Dipickup', 'Menunggu Persetujuan']
+                            ))
+                            ->afterStateHydrated(function ($set, $get, $livewire) {
+                                $status = \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status;
+                        
+                                // Jika hidden (berarti status bukan 'Sedang Dipickup' atau 'Menunggu Persetujuan')
+                                if (in_array($status, ['Sedang Dipickup', 'Menunggu Persetujuan'])) {
+                                    // Ambil record terakhir dari relasi deliveryEvents (atau sesuaikan dengan relasi/logic milikmu)
+                                    $lastUserId = $livewire->getOwnerRecord()?->deliveryEvents()->latest('created_at')->first()?->users_id;
+                                    
+                                    // Jika ada, set sebagai nilai default
+                                    if ($lastUserId) {
+                                        $set('users_id', $lastUserId);
+                                    }
+                                }
+                            }),
                         FileUpload::make('photos')
-                        ->label('Photos')
-                        ->image()
-                        ->directory('delivery-photos')
-                        ->hidden(fn($get) => \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status !== 'Telah Tiba')
-                        // ->required()
-                        ->columnSpanFull(),
+                            ->label('Photos')
+                            ->image()
+                            ->directory('delivery-photos')
+                            ->hidden(fn($get) => \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status !== 'Telah Tiba')
+                            ->required()
+                            ->columnSpanFull(),
                         // Select::make('users_id')
                         //     ->label('Driver')
                         //     ->relationship('users', 'name')
@@ -100,9 +134,16 @@ class DeliveryEventsRelationManager extends RelationManager
                 TextColumn::make('users_id')->label('User ID'),
                 TextColumn::make('checkpoints.checkpoint_name')->label('Checkpoint'),
                 TextColumn::make('users.name')->label('Handled By'),
-                TextColumn::make('deliveryStatus.delivery_status'),
+                TextColumn::make('deliveryStatus.delivery_status')
+                    ->badge()
+                    ->color(fn(String $state): string => match ($state) {
+                        'Sedang Dipickup' => 'warning',
+                        'Sedang Dikirim' => 'warning',
+                        'Telah Tiba' => 'success',
+                        default => 'secondary,'
+                    }),
                 TextColumn::make('created_at')->label('Event Time')->dateTime(),
-                ImageColumn::make('image'),
+                ImageColumn::make('image')->translateLabel(),
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make()

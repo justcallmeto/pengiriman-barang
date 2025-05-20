@@ -25,8 +25,9 @@ class DeliveryStatusResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('delivery_status')
-                    ->required()
-                    ->maxLength(255),
+                ->required()
+                ->maxLength(255)
+                ->translateLabel(),
             ]);
     }
 
@@ -35,7 +36,9 @@ class DeliveryStatusResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('delivery_status')
-                    ->searchable(),
+                ->label(__('Delivery Status'))
+                    ->searchable()
+                    ->translateLabel(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -76,6 +79,14 @@ class DeliveryStatusResource extends Resource
         ];
     }
 
+    // public static function getLabel(): ?string
+    // {
+    //     $locale = app()->getLocale();
+    //     if($locale == 'id')
+    //     {
+    //         return 'Status Pengiriman';
+    //     }
+    // }
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()

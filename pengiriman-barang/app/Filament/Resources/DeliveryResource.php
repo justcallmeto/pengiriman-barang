@@ -37,15 +37,17 @@ class DeliveryResource extends Resource
         return $form
             ->schema([
                 Section::make('Deliveries')
-                    ->description('Create a delivery')
+                    ->description(__('delivery.group-desc'))
                     ->schema([
                         TextInput::make('delivery_code')
+                            ->label(__('delivery.table.delivery_code'))
                             ->default(function () {
                                 $last = Delivery::latest('id')->first();
                                 $lastNumber = 1;
 
                                 if ($last && preg_match('/TJ-(\d+)/', $last->delivery_code, $matches)) {
                                     $lastNumber = (int) $matches[1] + 1;
+                                    // dd(__('delivery.table.delivery_code'), app()->getLocale());
                                 }
 
                                 return 'TJ-' . str_pad($lastNumber, 13, '0', STR_PAD_LEFT);
@@ -86,6 +88,7 @@ class DeliveryResource extends Resource
                         Placeholder::make('note')
                             ->label('Notes')
                             ->content('📌 Notes: After this form submitted , deliveries form cannot be edited')
+
                             ->visible(
                                 fn(Component $component): bool =>
                                 $component->getLivewire() instanceof \Filament\Resources\Pages\CreateRecord
@@ -94,7 +97,17 @@ class DeliveryResource extends Resource
                             ->label('Driver')
                             ->relationship('users', 'name')
                             ->preload()
-                            ->searchable(),
+                            ->searchable()
+                            //disable ketika role nya bukan admin
+                            ->disabled(function (Component $component): bool {
+                                $user = Filament::auth()->user();
+                                $isEdit = $component->getLivewire() instanceof \Filament\Resources\Pages\EditRecord;
+
+                                return $isEdit && !$user->hasAnyRole(['super_admin', 'admin']);
+                            })
+                            ->hidden(function (Component $component): bool {
+                                return $component->getLivewire() instanceof \Filament\Resources\Pages\CreateRecord;
+                            }),
 
                         // ->hidden(fn($get) => !$get('is_pickup')),
                         // Select::make('checkpoints_id')
@@ -171,14 +184,20 @@ class DeliveryResource extends Resource
                 //     ->searchable(),
                 // TextColumn::make('delivery_photo')
                 //     ->searchable(),
-                TextColumn::make('deliveryEvents')
+                TextColumn::make('latest_status')
                     ->label('Latest Status')
-                    ->formatStateUsing(function ($record) {
-                        // Ambil event terbaru berdasarkan created_at
+                    ->badge()
+                    ->getStateUsing(function ($record) {
                         $latestEvent = $record->deliveryEvents->sortByDesc('created_at')->first();
-
-                        // Kembalikan status terbaru jika ada, jika tidak tampilkan '-'
                         return optional($latestEvent?->deliveryStatus)->delivery_status ?? '-';
+                    })
+                    ->formatStateUsing(fn(string $state) => $state)
+                    ->color(fn(string $state) => match ($state) {
+                        'Sedang Dipickup' => 'warning',
+                        'Sedang Dikirim' => 'warning',
+                        'Telah Tiba' => 'success',
+                        'Menunggu Persetujuan' => 'info',
+                        default => 'secondary',
                     }),
                 TextColumn::make('created_at')
                     ->dateTime()
@@ -193,7 +212,46 @@ class DeliveryResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(function ($record) {
+                        $user = Filament::auth()->user();
+                        $latestStatus = optional($record->deliveryEvents->sortByDesc('created_at')->first()?->deliveryStatus)->delivery_status;
+
+                        // Sembunyikan Edit jika bukan admin & status Menunggu Persetujuan
+                        if (!$user->hasAnyRole(['admin', 'super_admin']) && $latestStatus === 'Menunggu Persetujuan') {
+                            return false;
+                        }
+
+                        return true;
+                    }),
+                Tables\Actions\Action::make('approve')
+                    ->label('Approve')
+                    ->color('success')
+                    ->icon('heroicon-o-check-circle')
+                    ->visible(function (Delivery $record): bool {
+                        $user = Filament::auth()->user();
+
+                        // hanya jika user tidak punya role admin/super_admin
+                        return !$user->hasAnyRole(['admin', 'super_admin']) &&
+                            optional($record->deliveryEvents->sortByDesc('created_at')->first()?->deliveryStatus)->delivery_status === 'Menunggu Persetujuan';
+                    })
+                    ->action(function (Delivery $record): void {
+                        // Contoh logika approve-nya
+                        $menungguStatus = \App\Models\DeliveryStatus::where('delivery_status', 'Sedang Dipickup')->first();
+
+                        if ($menungguStatus) {
+                            $record->deliveryEvents()->create([
+                                'delivery_statuses_id' => $menungguStatus->id,
+                                'users_id' => Filament::auth()->id(),
+                            ]);
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Approve Delivery')
+                    ->modalDescription('Are you sure you want to approve this delivery?')
+                    ->modalSubmitActionLabel('Approve')
+
+
                 // Tables\Actions\CreateAction::make(),
             ])
             ->bulkActions([
@@ -232,14 +290,13 @@ class DeliveryResource extends Resource
         //     'deliveryEvents.checkpoints',     // <-- jika ada checkpoint juga
         // ]);
         // if(!Filament::auth()->user()->hasAnyRole('super_admin'))
-        if(!Filament::auth()->user()->hasRole('super_admin'))
-        {
+        if (!Filament::auth()->user()->hasRole('super_admin')) {
             $query->withoutGlobalScopes([SoftDeletingScope::class,])->with([
-            'deliveryEvents.deliveryStatus', // <-- relasi berantai
-            'deliveryEvents.checkpoints',     // <-- jika ada checkpoint juga
-        ])->where('users_id', Filament::auth()->id());
-        } else{
-            $query ->withoutGlobalScopes([SoftDeletingScope::class,])->with([
+                'deliveryEvents.deliveryStatus', // <-- relasi berantai
+                'deliveryEvents.checkpoints',     // <-- jika ada checkpoint juga
+            ])->where('users_id', Filament::auth()->id());
+        } else {
+            $query->withoutGlobalScopes([SoftDeletingScope::class,])->with([
                 'deliveryEvents.deliveryStatus', // <-- relasi berantai
                 'deliveryEvents.checkpoints',     // <-- jika ada checkpoint juga
             ]);
@@ -251,5 +308,10 @@ class DeliveryResource extends Resource
     // public static function shouldRegisterNavigation(): bool
     // {
     //     return false;
+    // }
+
+    // public static function getLabel(): string
+    // {
+    //     return __(static::$title); // pastikan diterjemahkan
     // }
 }

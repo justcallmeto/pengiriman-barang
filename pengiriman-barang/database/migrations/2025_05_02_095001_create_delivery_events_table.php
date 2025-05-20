@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('delivery_events', function (Blueprint $table) {
             $table->id();
             $table->foreignId('delivery_id')->constrained('deliveries')->cascadeOnDelete();
-            $table->foreignId('checkpoint_id')->constrained('checkpoints')->cascadeOnDelete();
+            $table->foreignId('checkpoint_id')->nullable()->constrained('checkpoints')->cascadeOnDelete();
             $table->foreignId('delivery_statuses_id')->constrained('delivery_statuses')->cascadeOnDelete();
             $table->foreignId('users_id')->nullable()->constrained('users')->cascadeOnDelete();
             $table->string('note')->nullable();

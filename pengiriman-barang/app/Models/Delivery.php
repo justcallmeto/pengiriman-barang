@@ -11,7 +11,7 @@ class Delivery extends Model
     use HasFactory, SoftDeletes;
     // protected $fillable = ['recipient_name', 'recipient_address', 'checkpoints_id', 'users_id', 'delivery_statuses_id', 'is_pickup', 'is_done', 'is_send'];
 
-    protected $fillable = ['delivery_code', 'recipient_name', 'recipient_address', 'delivery_items', 'users_id'];
+    protected $fillable = ['delivery_code', 'recipient_name', 'recipient_address', 'delivery_items', 'users_id', 'checkpoint_id'];
 
     public function users()
     {

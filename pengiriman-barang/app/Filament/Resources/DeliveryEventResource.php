@@ -18,6 +18,7 @@ class DeliveryEventResource extends Resource
     protected static ?string $model = DeliveryEvent::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
     
     public static function canCreate(): bool
     {

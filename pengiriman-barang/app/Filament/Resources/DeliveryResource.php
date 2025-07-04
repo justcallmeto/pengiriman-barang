@@ -28,10 +28,11 @@ class DeliveryResource extends Resource
     protected static ?string $title = 'Delivery';
     protected static ?string $model = Delivery::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-truck';
 
     protected static ?string $navigationGroup = 'Deliveries';
 
+    protected static ?string $activeNavigationIcon = 'heroicon-o-truck';
     public static function form(Form $form): Form
     {
         return $form
@@ -148,9 +149,11 @@ class DeliveryResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('delivery_code')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('recipient_name')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('recipient_address')
                     ->searchable(),
                 TextColumn::make('deliveryEvents.users.name')
@@ -160,8 +163,7 @@ class DeliveryResource extends Resource
 
                         // Kembalikan status terbaru jika ada, jika tidak tampilkan '-'
                         return optional($latestUserOnEvent?->users)->name ?? '-';
-                    })
-                    ->sortable(),
+                    }),
 
                 // TextColumn::make('checkpoints_id')
                 //     ->numeric()
@@ -196,7 +198,7 @@ class DeliveryResource extends Resource
                         'Sedang Dipickup' => 'warning',
                         'Sedang Dikirim' => 'warning',
                         'Telah Tiba' => 'success',
-                        'Menunggu Persetujuan' => 'info',
+                        'Menunggu Kurir' => 'info',
                         default => 'secondary',
                     }),
                 TextColumn::make('created_at')
@@ -217,8 +219,8 @@ class DeliveryResource extends Resource
                         $user = Filament::auth()->user();
                         $latestStatus = optional($record->deliveryEvents->sortByDesc('created_at')->first()?->deliveryStatus)->delivery_status;
 
-                        // Sembunyikan Edit jika bukan admin & status Menunggu Persetujuan
-                        if (!$user->hasAnyRole(['admin', 'super_admin']) && $latestStatus === 'Menunggu Persetujuan') {
+                        // Sembunyikan Edit jika bukan admin & status Menunggu Kurir
+                        if (!$user->hasAnyRole(['admin', 'super_admin']) && $latestStatus === 'Menunggu Kurir') {
                             return false;
                         }
 
@@ -233,7 +235,7 @@ class DeliveryResource extends Resource
 
                         // hanya jika user tidak punya role admin/super_admin
                         return !$user->hasAnyRole(['admin', 'super_admin']) &&
-                            optional($record->deliveryEvents->sortByDesc('created_at')->first()?->deliveryStatus)->delivery_status === 'Menunggu Persetujuan';
+                            optional($record->deliveryEvents->sortByDesc('created_at')->first()?->deliveryStatus)->delivery_status === 'Menunggu Kurir';
                     })
                     ->action(function (Delivery $record): void {
                         // Contoh logika approve-nya

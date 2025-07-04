@@ -17,10 +17,11 @@ class CheckpointResource extends Resource
 {
     protected static ?string $model = Checkpoint::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-map-pin';
 
     protected static ?string $navigationGroup = 'Checkpoints and Districts';
 
+    protected static ?string $activeNavigationIcon = 'heroicon-o-map-pin';
     public static function form(Form $form): Form
     {
         return $form

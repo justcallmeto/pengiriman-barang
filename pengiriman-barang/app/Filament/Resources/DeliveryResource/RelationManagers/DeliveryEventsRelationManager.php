@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\DeliveryResource\RelationManagers;
 
+use App\Models\Checkpoint;
+use App\Models\DeliveryStatus;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -18,7 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Section;
 use Filament\Tables\Columns\ImageColumn;
-use Illuminate\Database\Eloquent\Model; // tambahkan ini jika belum
+// use Illuminate\Database\Eloquent\Model; // tambahkan ini jika belum
 use Illuminate\Support\Facades\Log;
 
 class DeliveryEventsRelationManager extends RelationManager
@@ -45,69 +47,108 @@ class DeliveryEventsRelationManager extends RelationManager
                             ->default(fn($livewire) => $livewire->getOwnerRecord()?->deliveryEvents->sortByDesc('created_at')->first()?->delivery_statuses_id)
                             ->columnSpanFull()
                             ->reactive(),
+                        // Select::make('checkpoint_id')
+                        //     ->label('Checkpoints')
+                        //     ->relationship('checkpoints', 'checkpoint_name')
+                        //     ->default(fn($livewire) => $livewire->getOwnerRecord()?->deliveryEvents->sortByDesc('created_at')->first()?->checkpoint_id)
+                        //     // ->placeholder('Menunggu')
+                        //     ->hidden(function ($get) {
+                        //         $status = \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status;
+                        //         return in_array($status, ['Telah Tiba', 'Sedang Dipickup', 'Menunggu Kurir']);
+                        //     })
+                        //     ->afterStateHydrated(function ($set, $get) {
+                        //         $status = \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status;
+
+                        //         if ($status === 'Telah Tiba' || $status == 'Sedang Dipickup') {
+                        //             $set('checkpoint_id', null); // atau '' jika ingin string kosong
+                        //         }
+                        //     })
+                        //     ->columnSpanFull()
+                        //     ->reactive(),
                         Select::make('checkpoint_id')
                             ->label('Checkpoints')
                             ->relationship('checkpoints', 'checkpoint_name')
+                            ->options(function () {
+                                return Checkpoint::with('districts')
+                                    ->get()
+                                    ->mapWithKeys(function ($checkpoint) {
+                                        $districtName = $checkpoint->districts->district_name ?? 'Select a district';
+                                        return [$checkpoint->id => "{$districtName} - {$checkpoint->checkpoint_name}"];
+                                    });
+                            })
                             ->default(fn($livewire) => $livewire->getOwnerRecord()?->deliveryEvents->sortByDesc('created_at')->first()?->checkpoint_id)
                             // ->placeholder('Menunggu')
                             ->hidden(function ($get) {
-                                $status = \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status;
-                                return in_array($status, ['Telah Tiba', 'Sedang Dipickup', 'Menunggu Persetujuan']);
+                                $status = DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status;
+                                return in_array($status, ['Telah Tiba', 'Sedang Dipickup', 'Menunggu Kurir']);
                             })
                             ->afterStateHydrated(function ($set, $get) {
-                                $status = \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status;
+                                $status = DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status;
 
                                 if ($status === 'Telah Tiba' || $status == 'Sedang Dipickup') {
                                     $set('checkpoint_id', null); // atau '' jika ingin string kosong
                                 }
-                            })
-                            ->columnSpanFull()
-                            ->reactive(),
+                            }),
                         Select::make('users_id')
                             ->label('Driver')
                             ->relationship('users', 'name')
                             ->preload()
-                            ->formatStateUsing(fn($state, $record) => $record?->users_id)
+                            ->default(function ($livewire) {
+                                // Default sederhana dari event terakhir atau owner
+                                $lastUserId = $livewire->getOwnerRecord()?->deliveryEvents()->latest('created_at')->first()?->users_id;
+                                return $lastUserId ?: $livewire->getOwnerRecord()?->users_id;
+                            })
                             ->hidden(fn($get) => !in_array(
-                                \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status,
-                                ['Sedang Dipickup', 'Menunggu Persetujuan']
+                                DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status,
+                                ['Sedang Dipickup', 'Menunggu Kurir']
                             ))
-                            ->afterStateHydrated(function ($set, $get, $livewire) {
-                                $status = \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status;
-                        
-                                // Jika hidden (berarti status bukan 'Sedang Dipickup' atau 'Menunggu Persetujuan')
-                                if (in_array($status, ['Sedang Dipickup', 'Menunggu Persetujuan'])) {
-                                    // Ambil record terakhir dari relasi deliveryEvents (atau sesuaikan dengan relasi/logic milikmu)
+                            ->reactive()
+                            ->dehydrated(true)
+                            ->afterStateUpdated(function ($set, $get, $state, $livewire, $component) {
+                                $status = DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status;
+
+                                // Jika field menjadi hidden, set users_id dari record terakhir
+                                if (!in_array($status, ['Sedang Dipickup', 'Menunggu Kurir'])) {
                                     $lastUserId = $livewire->getOwnerRecord()?->deliveryEvents()->latest('created_at')->first()?->users_id;
-                                    
-                                    // Jika ada, set sebagai nilai default
+                                    if ($lastUserId) {
+                                        $set('users_id', $lastUserId);
+                                    }
+                                }
+                            })
+                            // Tambahan: pastikan nilai di-set saat delivery_statuses_id berubah
+                            ->live()
+                            ->afterStateHydrated(function ($set, $get, $state, $livewire) {
+                                $status = DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status;
+
+                                // Jika field hidden dan belum ada nilai, set dari record terakhir
+                                if (!in_array($status, ['Sedang Dipickup', 'Menunggu Kurir']) && !$state) {
+                                    $lastUserId = $livewire->getOwnerRecord()?->deliveryEvents()->latest('created_at')->first()?->users_id;
                                     if ($lastUserId) {
                                         $set('users_id', $lastUserId);
                                     }
                                 }
                             }),
+                        Hidden::make('users_id')
+                            ->default(fn($livewire) => $livewire->getOwnerRecord()?->users_id),
+
+                        //buat debug aja 
+
+                        // Placeholder::make('debug_info')
+                        //     ->content(function ($livewire, $get) {
+                        //         $ownerUserId = $livewire->getOwnerRecord()?->users_id;
+                        //         $currentUserId = $get('users_id');
+                        //         $lastEventUserId = $livewire->getOwnerRecord()?->deliveryEvents()->latest('created_at')->first()?->users_id;
+
+                        //         return "Owner User ID: {$ownerUserId}<br>Current User ID: {$currentUserId}<br>Last Event User ID: {$lastEventUserId}";
+                        //     })
+                        //     ->columnSpanFull(),
                         FileUpload::make('photos')
                             ->label('Photos')
                             ->image()
                             ->directory('delivery-photos')
-                            ->hidden(fn($get) => \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status !== 'Telah Tiba')
+                            ->hidden(fn($get) => DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status !== 'Telah Tiba')
                             ->required()
                             ->columnSpanFull(),
-                        // Select::make('users_id')
-                        //     ->label('Driver')
-                        //     ->relationship('users', 'name')
-                        //     ->preload()
-                        //     ->formatStateUsing(fn($state, $record) => $record?->users_id),
-                        // Select::make('users_id')
-                        //     ->label('Driver')
-                        //     ->relationship('users', 'name')
-                        //     ->preload()
-                        //     ->default(fn($livewire) => $livewire->getOwnerRecord()?->users_id)
-                        //     ->disabled()
-                        //     ->dehydrated(true)
-                        //     ->columnSpanFull(),
-                        Forms\Components\Hidden::make('users_id')
-                            ->default(fn($livewire) => $livewire->getOwnerRecord()?->users_id),
                         Placeholder::make('note')
                             ->content('📌 Setelah pengiriman dibuat, data tidak dapat diubah.'),
                         // Select::make('checkpoints_id') // pastikan field-nya sesuai kolom foreign key
@@ -119,6 +160,19 @@ class DeliveryEventsRelationManager extends RelationManager
                         //                 $districtName = $checkpoint->districts->district_name ?? 'Select a district';
                         //                 return [$checkpoint->id => "{$districtName} - {$checkpoint->checkpoint_name}"];
                         //             });
+                        //     })
+                        //     ->default(fn($livewire) => $livewire->getOwnerRecord()?->deliveryEvents->sortByDesc('created_at')->first()?->checkpoint_id)
+                        //     // ->placeholder('Menunggu')
+                        //     ->hidden(function ($get) {
+                        //         $status = \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status;
+                        //         return in_array($status, ['Telah Tiba', 'Sedang Dipickup', 'Menunggu Kurir']);
+                        //     })
+                        //     ->afterStateHydrated(function ($set, $get) {
+                        //         $status = \App\Models\DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status;
+
+                        //         if ($status === 'Telah Tiba' || $status == 'Sedang Dipickup') {
+                        //             $set('checkpoint_id', null); // atau '' jika ingin string kosong
+                        //         }
                         //     }),
                     ]),
 
@@ -133,14 +187,17 @@ class DeliveryEventsRelationManager extends RelationManager
                 TextColumn::make('id'),
                 TextColumn::make('users_id')->label('User ID'),
                 TextColumn::make('checkpoints.checkpoint_name')->label('Checkpoint'),
-                TextColumn::make('users.name')->label('Handled By'),
+                TextColumn::make('users.name')
+                    ->label('Handled By'),
+                    // ->sortable(false),
                 TextColumn::make('deliveryStatus.delivery_status')
                     ->badge()
-                    ->color(fn(String $state): string => match ($state) {
+                    ->color(fn(string $state) => match ($state) {
                         'Sedang Dipickup' => 'warning',
                         'Sedang Dikirim' => 'warning',
                         'Telah Tiba' => 'success',
-                        default => 'secondary,'
+                        'Menunggu Kurir' => 'info',
+                        default => 'secondary',
                     }),
                 TextColumn::make('created_at')->label('Event Time')->dateTime(),
                 ImageColumn::make('image')->translateLabel(),

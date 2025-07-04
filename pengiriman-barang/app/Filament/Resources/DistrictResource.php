@@ -17,10 +17,11 @@ class DistrictResource extends Resource
 {
     protected static ?string $model = District::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-map';
 
     protected static ?string $navigationGroup = 'Checkpoints and Districts';
 
+    protected static ?string $activeNavigationIcon = 'heroicon-o-map';
     public static function form(Form $form): Form
     {
         return $form

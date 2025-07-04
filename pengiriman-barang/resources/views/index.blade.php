@@ -95,7 +95,7 @@ https://templatemo.com/tm-590-topic-listing
       <!-- Tracking Form -->
       <div class="col-lg-6 col-12" id="form-container">
         <h1 class="text-center text-lg-start">Pantau status pesananmu secara real-time</h1>
-        <h6 class="text-center text-lg-start">Masukkan nomor resimu disini 👇</h6>
+        <h6 class="text-center text-lg-start text-white text-shadow">Masukkan nomor resimu disini 👇</h6>
 
         <form id="tracking-form" method="get" class="custom-form mt-3" role="search">
           <div class="input-group input-group-lg">

@@ -1,29 +1,3 @@
-// const dummyData = {
-//   "RESI654321": {
-//     status: "Menuju lokasi tujuan",
-//     lokasi: "Gudang Probolinggo",
-//     barang: "Lemari Kayu Jati",
-//     kurir: "Pak Darto",
-//     riwayat: [
-//       { status: "Pemesanan diproses", kurir: "Bu Sari", distrik: "Lumajang", checkpoint: "Workshop Utama" },
-//       { status: "Sedang pickup", kurir: "Pak Darto", distrik: "Lumajang", checkpoint: "Depo Jati" },
-//       { status: "Menuju lokasi tujuan", kurir: "Pak Darto", distrik: "Probolinggo", checkpoint: "Gudang Transit" }
-//     ]
-//   },
-//   "RESI123456": {
-//     status: "Telah diterima",
-//     lokasi: "Toko Mebel Tunas Jaya, Lumajang",
-//     barang: "Meja Makan 6 Kursi",
-//     kurir: "Pak Budi",
-//     riwayat: [
-//       { status: "Pemesanan diproses", kurir: "Pak Budi", distrik: "Surabaya", checkpoint: "Gudang Surabaya" },
-//       { status: "Sedang pickup", kurir: "Pak Budi", distrik: "Sidoarjo", checkpoint: "Pabrik Mebel" },
-//       { status: "Menuju lokasi tujuan", kurir: "Pak Budi", distrik: "Lumajang", checkpoint: "Perjalanan" },
-//       { status: "Telah diterima", kurir: "Pak Budi", distrik: "Lumajang", checkpoint: "Toko Utama" }
-//     ]
-//   }
-// };
-
 document.getElementById("tracking-form").addEventListener("submit", function (e) {
   e.preventDefault();
 

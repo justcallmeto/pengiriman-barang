@@ -146,8 +146,13 @@ class DeliveryEventsRelationManager extends RelationManager
                             ->label('Photos')
                             ->image()
                             ->directory('delivery-photos')
+                            // ->directory('qr_code') // Direktori penyimpanan
+                            ->disk('public')
                             ->hidden(fn($get) => DeliveryStatus::find($get('delivery_statuses_id'))?->delivery_status !== 'Telah Tiba')
                             ->required()
+                            ->default(function ($record) {
+                                return $record->barcodes->image ?? null;
+                            })
                             ->columnSpanFull(),
                         Placeholder::make('note')
                             ->content('📌 Setelah pengiriman dibuat, data tidak dapat diubah.'),
@@ -189,7 +194,7 @@ class DeliveryEventsRelationManager extends RelationManager
                 TextColumn::make('checkpoints.checkpoint_name')->label('Checkpoint'),
                 TextColumn::make('users.name')
                     ->label('Handled By'),
-                    // ->sortable(false),
+                // ->sortable(false),
                 TextColumn::make('deliveryStatus.delivery_status')
                     ->badge()
                     ->color(fn(string $state) => match ($state) {
@@ -200,7 +205,11 @@ class DeliveryEventsRelationManager extends RelationManager
                         default => 'secondary',
                     }),
                 TextColumn::make('created_at')->label('Event Time')->dateTime(),
-                ImageColumn::make('image')->translateLabel(),
+                ImageColumn::make('photos')
+                    ->translateLabel()
+                    ->label('Image')
+                    ->disk('public')
+                    ->height(50),
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make()

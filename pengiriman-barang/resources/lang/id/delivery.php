@@ -10,7 +10,7 @@ return [
         'recipient_address' => 'Alamat Penerima',
         'delivery_items' => 'Barang Dikirim',
         'notes' => '📌 Catatan: Setelah formulir dikirim, tidak dapat diedit.',
-        'driver' => 'Sopir',
+        'driver' => 'Kurir',
     ],
     'table' => [
         'delivery_code' => 'Kode',

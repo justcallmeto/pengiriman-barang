@@ -37,7 +37,7 @@ https://templatemo.com/tm-590-topic-listing
 
             <nav class="navbar navbar-expand-lg">
                 <div class="container">
-                    <a class="navbar-brand" href="index.html">
+                    <a class="navbar-brand" href="{{ url('/') }}">
                         
                         <span>TUNAS JAYA</span>
                     </a>
@@ -98,6 +98,7 @@ https://templatemo.com/tm-590-topic-listing
         <h6 class="text-center text-lg-start text-white text-shadow">Masukkan nomor resimu disini 👇</h6>
 
         <form id="tracking-form" method="get" class="custom-form mt-3" role="search">
+            @csrf
           <div class="input-group input-group-lg">
             <span class="input-group-text bi-search" id="basic-addon1"></span>
             <input name="resi" type="search" class="form-control" id="resi" placeholder="Contoh: TJ-1234567890" aria-label="Search">
@@ -151,7 +152,7 @@ https://templatemo.com/tm-590-topic-listing
 </div>
 
   <!-- Script -->
-<script src="js/script.js"></script>
+<script src="js/script-secure.js"></script>
 
                                 </div>
                             </div>
@@ -663,7 +664,7 @@ https://templatemo.com/tm-590-topic-listing
                 <div class="row">
 
                     <div class="col-lg-3 col-12 mb-4 pb-2">
-                        <a class="navbar-brand mb-2" href="index.html">
+                        <a class="navbar-brand mb-2" href="{{ url('/') }}">
                           
                             <span>TUNAS JAYA</span>
                         </a>

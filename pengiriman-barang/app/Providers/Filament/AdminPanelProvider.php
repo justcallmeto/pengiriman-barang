@@ -45,6 +45,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
+                
                 // \App\Filament\Pages\SwitchLanguage::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
@@ -74,6 +75,18 @@ class AdminPanelProvider extends PanelProvider
             ->plugins([
                 \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make(),
             ])
+            ->renderHook(
+                'panels::head.end',
+                fn (): string => '<style>
+                    .fi-filament-info-widget {
+                        display: none !important;
+                    }
+                    
+                    [wire\\:id*="filament-info-widget"] {
+                        display: none !important;
+                    }
+                </style>'
+            )
             
             // ->renderHook(
             //     'panels::global-search.after',

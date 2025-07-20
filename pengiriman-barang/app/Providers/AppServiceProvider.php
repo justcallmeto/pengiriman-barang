@@ -28,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
             $switch
             ->locales(['en', 'id']);
         });
+
+        
         // $this->loadTranslationsFrom(resource_path('lang/vendors/filament'), 'filament');
         // if ($this->app->environment('local')) {
         //     // Memastikan URL yang dihasilkan adalah HTTPS jika menggunakan link dari Mailtrap
